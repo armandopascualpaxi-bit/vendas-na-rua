@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Px Field Sales",
+    "slug": "vendas-na-rua",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#F6F4EF"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.empresa.vendasnarua",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDm6O9OJP8TShRcKgUydgUYYMmdHvlvlBg"
+        }
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F6F4EF"
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permitir que a Px Field Sales use a tua localiza\u00e7\u00e3o para centrar o mapa."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "9c0a3c71-9d9c-44e9-8a6d-da849af98b9c"
+      }
+    },
+    "icon": "./assets/icon.png"
+  }
+}
