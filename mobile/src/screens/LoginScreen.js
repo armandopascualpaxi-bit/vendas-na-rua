@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native'
 import { supabase } from '../supabase'
 import { cores } from '../tema'
 
@@ -20,7 +20,7 @@ console.log('LOGIN RESULT:', JSON.stringify({ data, error }))
 
   return (
     <View style={s.contentor}>
-      <Text style={s.titulo}>Px Field Sales</Text>
+      <Image source={require('../../assets/icon.png')} style={s.logo} resizeMode="contain" />
       <Text style={s.subtitulo}>Inicia sessão com a tua conta de vendedor</Text>
       <TextInput
         style={s.campo}
@@ -49,6 +49,7 @@ console.log('LOGIN RESULT:', JSON.stringify({ data, error }))
 
 const s = StyleSheet.create({
   contentor: { flex: 1, backgroundColor: cores.fundo, justifyContent: 'center', padding: 28 },
+  logo: { width: 96, height: 96, alignSelf: 'center', marginBottom: 8 },
   titulo: { fontSize: 32, fontWeight: '800', color: cores.navy },
   subtitulo: { fontSize: 16, color: cores.cinza, marginTop: 6, marginBottom: 28 },
   campo: {
