@@ -10,7 +10,7 @@ const PERIODOS = [
   { id: 'tudo', rotulo: 'Tudo' },
 ]
 
-const eur = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' })
+const eur = new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' })
 
 function inicioPeriodo(periodo) {
   if (periodo === 'hoje') {
