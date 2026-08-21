@@ -24,6 +24,8 @@ function inicioPeriodo(periodo) {
 
 export default function Dashboard() {
   const [periodo, setPeriodo] = useState('hoje')
+  const [filtroCliente, setFiltroCliente] = useState('')
+  const [filtroProduto, setFiltroProduto] = useState('')
   const [vendas, setVendas] = useState([])
   const [aCarregar, setACarregar] = useState(true)
   const [metas, setMetas] = useState([])
@@ -83,23 +85,37 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(canal) }
   }, [carregar])
 
+  const vendasFiltradas = useMemo(() => {
+    return vendas.filter(v =>
+      (!filtroCliente || v.clientes?.nome === filtroCliente) &&
+      (!filtroProduto || v.produtos?.nome === filtroProduto)
+    )
+  }, [vendas, filtroCliente, filtroProduto])
+
+  const clientesDisponiveis = useMemo(() =>
+    [...new Set(vendas.map(v => v.clientes?.nome).filter(Boolean))].sort(), [vendas])
+  const produtosDisponiveis = useMemo(() =>
+    [...new Set(vendas.map(v => v.produtos?.nome).filter(Boolean))].sort(), [vendas])
+
   const stats = useMemo(() => {
-    const receita = vendas.reduce((s, v) => s + Number(v.valor_total), 0)
-    const ativos = new Set(vendas.map(v => v.vendedores?.nome).filter(Boolean)).size
+    const receita = vendasFiltradas.reduce((s, v) => s + Number(v.valor_total), 0)
+    const quantidade = vendasFiltradas.reduce((s, v) => s + Number(v.quantidade), 0)
+    const ativos = new Set(vendasFiltradas.map(v => v.vendedores?.nome).filter(Boolean)).size
     return {
       receita,
-      n: vendas.length,
+      quantidade,
+      n: vendasFiltradas.length,
       ativos,
-      ticket: vendas.length ? receita / vendas.length : 0,
+      ticket: vendasFiltradas.length ? receita / vendasFiltradas.length : 0,
     }
-  }, [vendas])
+  }, [vendasFiltradas])
 
-  const porVendedor = useMemo(() => agrupar(vendas, v => v.vendedores?.nome || '—'), [vendas])
-  const porProduto = useMemo(() => agrupar(vendas, v => v.produtos?.nome || '—'), [vendas])
+  const porVendedor = useMemo(() => agrupar(vendasFiltradas, v => v.vendedores?.nome || '—'), [vendasFiltradas])
+  const porProduto = useMemo(() => agrupar(vendasFiltradas, v => v.produtos?.nome || '—'), [vendasFiltradas])
 
   function exportarCSV() {
     const cab = ['Data', 'Vendedor', 'Produto', 'Cliente', 'Zona', 'Quantidade', 'Preço unitário', 'Total']
-    const linhas = vendas.map(v => [
+    const linhas = vendasFiltradas.map(v => [
       new Date(v.data_venda).toLocaleString('pt-PT'),
       v.vendedores?.nome || '', v.produtos?.nome || '', v.clientes?.nome || '',
       v.zona || '', v.quantidade,
@@ -126,7 +142,15 @@ export default function Dashboard() {
           </button>
         ))}
         <span style={{ flex: 1 }} />
-        <button className="btn contorno pequeno" onClick={exportarCSV} disabled={!vendas.length}>
+        <select value={filtroCliente} onChange={e => setFiltroCliente(e.target.value)} style={{ marginRight: 8 }}>
+          <option value="">Todos os clientes</option>
+          {clientesDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={filtroProduto} onChange={e => setFiltroProduto(e.target.value)} style={{ marginRight: 8 }}>
+          <option value="">Todos os produtos</option>
+          {produtosDisponiveis.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <button className="btn contorno pequeno" onClick={exportarCSV} disabled={!vendasFiltradas.length}>
           Exportar CSV
         </button>
       </div>
@@ -134,6 +158,7 @@ export default function Dashboard() {
       <div className="cards">
         <div className="card"><div className="rotulo">Receita total</div><div className="valor ambar">{eur.format(stats.receita)}</div></div>
         <div className="card"><div className="rotulo">Nº de vendas</div><div className="valor">{stats.n}</div></div>
+        <div className="card"><div className="rotulo">Unidades vendidas</div><div className="valor">{stats.quantidade}</div></div>
         <div className="card"><div className="rotulo">Vendedores ativos</div><div className="valor">{stats.ativos}</div></div>
         <div className="card"><div className="rotulo">Ticket médio</div><div className="valor">{eur.format(stats.ticket)}</div></div>
       </div>
@@ -186,7 +211,7 @@ export default function Dashboard() {
 
       <div className="painel">
         <h2>Atividade recente {aCarregar && '— a atualizar…'}</h2>
-        {vendas.slice(0, 15).map(v => (
+        {vendasFiltradas.slice(0, 15).map(v => (
           <div className="feed-item" key={v.id}>
             <span>
               <strong>{v.vendedores?.nome}</strong> vendeu {v.quantidade}× {v.produtos?.nome}
@@ -197,7 +222,7 @@ export default function Dashboard() {
             </span>
           </div>
         ))}
-        {!vendas.length && !aCarregar && <p style={{ color: 'var(--cinza)', fontSize: 14 }}>Sem vendas neste período.</p>}
+        {!vendasFiltradas.length && !aCarregar && <p style={{ color: 'var(--cinza)', fontSize: 14 }}>Sem vendas neste período.</p>}
       </div>
     </>
   )
