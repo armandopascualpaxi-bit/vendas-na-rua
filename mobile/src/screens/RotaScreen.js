@@ -122,6 +122,15 @@ export default function RotaScreen({ navigation }) {
                       <Text style={s.botaoVendaTexto}>Registar venda</Text>
                     </TouchableOpacity>
                   )}
+                  <TouchableOpacity
+                    style={s.botaoNav}
+                    onPress={() => navigation.navigate('RegistarPagamento', {
+                      cliente: item.clientes,
+                      vendedorId,
+                    })}
+                  >
+                    <Text style={s.botaoNavTexto}>💰 Pagamento</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>

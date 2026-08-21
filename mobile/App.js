@@ -7,6 +7,7 @@ import { cores } from './src/tema'
 import LoginScreen from './src/screens/LoginScreen'
 import RotaScreen from './src/screens/RotaScreen'
 import RegistarVendaScreen from './src/screens/RegistarVendaScreen'
+import RegistarPagamentoScreen from './src/screens/RegistarPagamentoScreen'
 import HistoricoScreen from './src/screens/HistoricoScreen'
 
 const Stack = createNativeStackNavigator()
@@ -70,6 +71,7 @@ export default function App() {
             <>
               <Stack.Screen name="Rota" component={RotaScreen} options={{ title: 'Rota do dia' }} />
               <Stack.Screen name="RegistarVenda" component={RegistarVendaScreen} options={{ title: 'Registar venda' }} />
+              <Stack.Screen name="RegistarPagamento" component={RegistarPagamentoScreen} options={{ title: 'Registar pagamento' }} />
               <Stack.Screen name="Historico" component={HistoricoScreen} options={{ title: 'Vendas de hoje' }} />
             </>
           ) : (
