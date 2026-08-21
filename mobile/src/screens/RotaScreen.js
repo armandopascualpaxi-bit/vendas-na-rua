@@ -84,6 +84,24 @@ export default function RotaScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {!!paragens.length && (
+        <View style={s.progressoBarra}>
+          <View style={s.progressoTexto}>
+            <Text style={s.progressoLabel}>
+              {paragens.filter(p => p.estado === 'visitado').length} de {paragens.length} visitas concluídas
+            </Text>
+            <Text style={s.progressoPct}>
+              {Math.round((paragens.filter(p => p.estado === 'visitado').length / paragens.length) * 100)}%
+            </Text>
+          </View>
+          <View style={s.progressoFundo}>
+            <View style={[s.progressoPreenchido, {
+              width: `${(paragens.filter(p => p.estado === 'visitado').length / paragens.length) * 100}%`
+            }]} />
+          </View>
+        </View>
+      )}
+
       {aCarregar && !paragens.length ? (
         <ActivityIndicator size="large" color={cores.ambar} style={{ margin: 24 }} />
       ) : (
@@ -152,6 +170,12 @@ const s = StyleSheet.create({
   botaoHistorico: { padding: 6 },
   botaoHistoricoTexto: { color: cores.navy, fontWeight: '700', fontSize: 16 },
   sair: { color: cores.cinza, fontSize: 15 },
+  progressoBarra: { backgroundColor: cores.branco, paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#e5e1d8' },
+  progressoTexto: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  progressoLabel: { fontSize: 13, color: cores.navy, fontWeight: '600' },
+  progressoPct: { fontSize: 13, color: cores.ambar, fontWeight: '700' },
+  progressoFundo: { height: 8, backgroundColor: '#e5e1d8', borderRadius: 4, overflow: 'hidden' },
+  progressoPreenchido: { height: '100%', backgroundColor: cores.verde },
   lista: { flex: 1, padding: 12 },
   vazio: { textAlign: 'center', color: cores.cinza, fontSize: 16, marginTop: 24 },
   cartao: {
