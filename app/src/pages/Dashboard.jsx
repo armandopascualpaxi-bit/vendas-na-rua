@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [vendas, setVendas] = useState([])
   const [aCarregar, setACarregar] = useState(true)
   const [metas, setMetas] = useState([])
+  const [visitas, setVisitas] = useState([])
 
   const carregar = useCallback(async () => {
     setACarregar(true)
@@ -75,6 +76,25 @@ export default function Dashboard() {
 
   useEffect(() => { carregar() }, [carregar])
   useEffect(() => { carregarMetas() }, [carregarMetas])
+
+  const carregarVisitas = useCallback(async () => {
+    const hoje = new Date().toISOString().slice(0, 10)
+    const { data } = await supabase
+      .from('rotas')
+      .select('estado, vendedores(nome)')
+      .eq('data', hoje)
+
+    const agrupado = {}
+    for (const r of (data || [])) {
+      const nome = r.vendedores?.nome || '—'
+      if (!agrupado[nome]) agrupado[nome] = { total: 0, concluidas: 0 }
+      agrupado[nome].total++
+      if (r.estado === 'visitado') agrupado[nome].concluidas++
+    }
+    setVisitas(Object.entries(agrupado).map(([nome, v]) => ({ nome, ...v })))
+  }, [])
+
+  useEffect(() => { carregarVisitas() }, [carregarVisitas])
 
   // Subscrição em tempo real — o dashboard atualiza sem F5
   useEffect(() => {
@@ -180,6 +200,25 @@ export default function Dashboard() {
           )
         })}
         {!metas.length && <p style={{ color: 'var(--cinza)', fontSize: 14 }}>Sem metas definidas este mês.</p>}
+      </div>
+
+      <div className="painel">
+        <h2>Visitas do dia por vendedor</h2>
+        {visitas.map(v => {
+          const pct = v.total ? Math.round((v.concluidas / v.total) * 100) : 0
+          return (
+            <div key={v.nome} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+                <strong>{v.nome}</strong>
+                <span>{v.concluidas} de {v.total} visitas ({pct}%)</span>
+              </div>
+              <div style={{ background: '#e5e1d8', borderRadius: 8, height: 10, overflow: 'hidden' }}>
+                <div style={{ width: `${pct}%`, background: pct === 100 ? '#2e7d32' : '#0F2540', height: '100%' }} />
+              </div>
+            </div>
+          )
+        })}
+        {!visitas.length && <p style={{ color: 'var(--cinza)', fontSize: 14 }}>Sem rotas para hoje.</p>}
       </div>
 
       <div className="grelha-2">
