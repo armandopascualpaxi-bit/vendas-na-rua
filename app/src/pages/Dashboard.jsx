@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [periodo, setPeriodo] = useState('hoje')
   const [vendas, setVendas] = useState([])
   const [aCarregar, setACarregar] = useState(true)
+  const [metas, setMetas] = useState([])
 
   const carregar = useCallback(async () => {
     setACarregar(true)
@@ -40,7 +41,38 @@ export default function Dashboard() {
     setACarregar(false)
   }, [periodo])
 
+  const carregarMetas = useCallback(async () => {
+    const hoje = new Date()
+    const mes = hoje.getMonth() + 1
+    const ano = hoje.getFullYear()
+    const inicioMes = new Date(ano, mes - 1, 1).toISOString()
+
+    const { data: metasData } = await supabase
+      .from('metas')
+      .select('valor_meta, vendedores(nome)')
+      .eq('mes', mes).eq('ano', ano)
+
+    const { data: vendasMes } = await supabase
+      .from('vendas')
+      .select('valor_total, vendedores(nome)')
+      .gte('data_venda', inicioMes)
+
+    const alcancadoPorNome = {}
+    for (const v of (vendasMes || [])) {
+      const nome = v.vendedores?.nome || '—'
+      alcancadoPorNome[nome] = (alcancadoPorNome[nome] || 0) + Number(v.valor_total)
+    }
+
+    const combinado = (metasData || []).map(m => ({
+      nome: m.vendedores?.nome || '—',
+      meta: Number(m.valor_meta),
+      alcancado: alcancadoPorNome[m.vendedores?.nome] || 0,
+    }))
+    setMetas(combinado)
+  }, [])
+
   useEffect(() => { carregar() }, [carregar])
+  useEffect(() => { carregarMetas() }, [carregarMetas])
 
   // Subscrição em tempo real — o dashboard atualiza sem F5
   useEffect(() => {
@@ -104,6 +136,25 @@ export default function Dashboard() {
         <div className="card"><div className="rotulo">Nº de vendas</div><div className="valor">{stats.n}</div></div>
         <div className="card"><div className="rotulo">Vendedores ativos</div><div className="valor">{stats.ativos}</div></div>
         <div className="card"><div className="rotulo">Ticket médio</div><div className="valor">{eur.format(stats.ticket)}</div></div>
+      </div>
+
+      <div className="painel">
+        <h2>Metas do mês</h2>
+        {metas.map(m => {
+          const pct = m.meta ? Math.min(100, Math.round((m.alcancado / m.meta) * 100)) : 0
+          return (
+            <div key={m.nome} style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 4 }}>
+                <strong>{m.nome}</strong>
+                <span>{eur.format(m.alcancado)} / {eur.format(m.meta)} ({pct}%)</span>
+              </div>
+              <div style={{ background: '#e5e1d8', borderRadius: 8, height: 10, overflow: 'hidden' }}>
+                <div style={{ width: `${pct}%`, background: pct >= 100 ? '#2e7d32' : '#E8871E', height: '100%' }} />
+              </div>
+            </div>
+          )
+        })}
+        {!metas.length && <p style={{ color: 'var(--cinza)', fontSize: 14 }}>Sem metas definidas este mês.</p>}
       </div>
 
       <div className="grelha-2">
