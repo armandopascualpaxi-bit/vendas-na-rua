@@ -85,6 +85,21 @@ export default function RotaScreen({ navigation }) {
 
   useFocusEffect(useCallback(() => { carregar() }, [carregar]))
 
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18, marginRight: 4 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('Historico')}>
+            <Text style={{ color: '#fff', fontSize: 20 }}>📋</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => supabase.auth.signOut()}>
+            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 15 }}>Sair</Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    })
+  }, [navigation])
+
   function abrirNavegacao(c) {
     const destino = c.lat && c.lng ? `${c.lat},${c.lng}` : encodeURIComponent(c.endereco)
     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destino}`)
@@ -154,15 +169,6 @@ export default function RotaScreen({ navigation }) {
         )}
       </View>
 
-
-      <View style={s.barra}>
-        <TouchableOpacity style={s.botaoHistorico} onPress={() => navigation.navigate('Historico')}>
-          <Text style={s.botaoHistoricoTexto}>📋 Vendas de hoje</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => supabase.auth.signOut()}>
-          <Text style={s.sair}>Sair</Text>
-        </TouchableOpacity>
-      </View>
 
       {aCarregar && !paragens.length ? (
         <ActivityIndicator size="large" color={cores.ambar} style={{ margin: 24 }} />

@@ -107,14 +107,11 @@ export default function RegistarVendaScreen({ route, navigation }) {
       />
 
       <Text style={s.rotulo}>Preço unitário (AOA)</Text>
-      <TextInput
-        style={s.campo}
-        keyboardType="decimal-pad"
-        value={precoUnit}
-        onChangeText={setPrecoUnit}
-        placeholder="0.00"
-        placeholderTextColor={cores.cinza}
-      />
+      <View style={s.campoFixo}>
+        <Text style={s.campoFixoTexto}>
+          {precoUnit ? Number(precoUnit).toFixed(2) : 'Escolhe um produto'}
+        </Text>
+      </View>
 
       <Text style={s.rotulo}>Cliente</Text>
       {cliente ? (
@@ -175,6 +172,8 @@ const s = StyleSheet.create({
   opcaoTextoAtivo: { fontWeight: '700' },
   clienteFixo: { backgroundColor: '#eef2f7', borderRadius: 10, padding: 14 },
   clienteFixoTexto: { fontSize: 16, fontWeight: '600', color: cores.navy },
+  campoFixo: { backgroundColor: '#f0f0eb', borderRadius: 10, padding: 15, borderWidth: 1, borderColor: '#e5e1d8' },
+  campoFixoTexto: { fontSize: 18, color: cores.navy, fontWeight: '600' },
   totalCaixa: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: cores.navy, borderRadius: 12, padding: 18, marginTop: 24,
