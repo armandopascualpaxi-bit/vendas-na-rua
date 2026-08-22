@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Alert,
@@ -13,6 +13,23 @@ export default function RegistarPagamentoScreen({ route, navigation }) {
   const [valor, setValor] = useState('')
   const [metodo, setMetodo] = useState('dinheiro')
   const [aGravar, setAGravar] = useState(false)
+  const [saldo, setSaldo] = useState(null)
+  const [aCarregarSaldo, setACarregarSaldo] = useState(true)
+
+  useEffect(() => {
+    if (!cliente?.id) return
+    ;(async () => {
+      setACarregarSaldo(true)
+      const { data: vendasCliente } = await supabase
+        .from('vendas').select('valor_total').eq('cliente_id', cliente.id)
+      const { data: pagamentosCliente } = await supabase
+        .from('pagamentos').select('valor').eq('cliente_id', cliente.id)
+      const totalVendido = (vendasCliente || []).reduce((s, v) => s + Number(v.valor_total), 0)
+      const totalPago = (pagamentosCliente || []).reduce((s, p) => s + Number(p.valor), 0)
+      setSaldo(totalVendido - totalPago)
+      setACarregarSaldo(false)
+    })()
+  }, [cliente?.id])
 
   async function submeter() {
     const v = parseFloat(String(valor).replace(',', '.'))
@@ -46,6 +63,13 @@ export default function RegistarPagamentoScreen({ route, navigation }) {
       <Text style={s.rotulo}>Cliente</Text>
       <View style={s.clienteFixo}>
         <Text style={s.clienteFixoTexto}>{cliente?.nome}</Text>
+        {aCarregarSaldo ? (
+          <Text style={s.saldoTexto}>A calcular saldo…</Text>
+        ) : saldo !== null && (
+          <Text style={[s.saldoTexto, saldo > 0 ? s.saldoDevedor : s.saldoOk]}>
+            {saldo > 0 ? `Saldo em dívida: ${saldo.toFixed(2)} AOA` : 'Sem dívida em aberto'}
+          </Text>
+        )}
       </View>
 
       <Text style={s.rotulo}>Valor (AOA)</Text>
@@ -97,6 +121,9 @@ const s = StyleSheet.create({
   opcaoTextoAtivo: { fontWeight: '700' },
   clienteFixo: { backgroundColor: '#eef2f7', borderRadius: 10, padding: 14 },
   clienteFixoTexto: { fontSize: 16, fontWeight: '600', color: cores.navy },
+  saldoTexto: { fontSize: 14, marginTop: 6 },
+  saldoDevedor: { color: '#c0392b', fontWeight: '700' },
+  saldoOk: { color: '#2e7d32', fontWeight: '600' },
   botao: {
     backgroundColor: cores.ambar, borderRadius: 12, padding: 18,
     alignItems: 'center', marginTop: 24, marginBottom: 40,
