@@ -4,7 +4,6 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView,
   Linking, ActivityIndicator, RefreshControl,
 } from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
 import * as Location from 'expo-location'
 import { supabase } from '../supabase'
 import { cores } from '../tema'
@@ -141,28 +140,20 @@ export default function RotaScreen({ navigation }) {
             <Text style={s.proximaLabel}>Próxima visita</Text>
             <Text style={s.proximaNome}>{proxima.clientes?.nome}</Text>
             <Text style={s.proximaEndereco}>{proxima.clientes?.endereco}</Text>
-            <TouchableOpacity style={s.botaoVenda} onPress={() => abrirNavegacao(proxima.clientes)}>
+            <TouchableOpacity
+              style={s.botaoVenda}
+              onPress={() => navigation.navigate('RegistarVenda', {
+                rotaId: proxima.id,
+                cliente: proxima.clientes,
+                vendedorId,
+              })}
+            >
               <Text style={s.botaoVendaTexto}>Iniciar visita</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
-      <MapView
-        style={s.mapa}
-        initialRegion={{ ...centro, latitudeDelta: 0.03, longitudeDelta: 0.03 }}
-        showsUserLocation
-      >
-        {paragens.filter(p => p.clientes?.lat).map((p, i) => (
-          <Marker
-            key={p.id}
-            coordinate={{ latitude: p.clientes.lat, longitude: p.clientes.lng }}
-            title={`${i + 1}. ${p.clientes.nome}`}
-            description={p.clientes.endereco}
-            pinColor={p.estado === 'visitado' ? 'green' : cores.ambar}
-          />
-        ))}
-      </MapView>
 
       <View style={s.barra}>
         <TouchableOpacity style={s.botaoHistorico} onPress={() => navigation.navigate('Historico')}>
@@ -172,24 +163,6 @@ export default function RotaScreen({ navigation }) {
           <Text style={s.sair}>Sair</Text>
         </TouchableOpacity>
       </View>
-
-      {!!paragens.length && (
-        <View style={s.progressoBarra}>
-          <View style={s.progressoTexto}>
-            <Text style={s.progressoLabel}>
-              {paragens.filter(p => p.estado === 'visitado').length} de {paragens.length} visitas concluídas
-            </Text>
-            <Text style={s.progressoPct}>
-              {Math.round((paragens.filter(p => p.estado === 'visitado').length / paragens.length) * 100)}%
-            </Text>
-          </View>
-          <View style={s.progressoFundo}>
-            <View style={[s.progressoPreenchido, {
-              width: `${(paragens.filter(p => p.estado === 'visitado').length / paragens.length) * 100}%`
-            }]} />
-          </View>
-        </View>
-      )}
 
       {aCarregar && !paragens.length ? (
         <ActivityIndicator size="large" color={cores.ambar} style={{ margin: 24 }} />
