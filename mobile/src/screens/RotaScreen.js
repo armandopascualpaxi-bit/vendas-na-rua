@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  View, Text, FlatList, TouchableOpacity, StyleSheet, ScrollView,
   Linking, ActivityIndicator, RefreshControl,
 } from 'react-native'
 import MapView, { Marker } from 'react-native-maps'
@@ -14,6 +14,10 @@ export default function RotaScreen({ navigation }) {
   const [posicao, setPosicao] = useState(null)
   const [aCarregar, setACarregar] = useState(true)
   const [vendedorId, setVendedorId] = useState(null)
+  const [resumo, setResumo] = useState({
+    nome: '', metaMes: 0, alcancadoMes: 0,
+    encomendasHoje: 0, receitaHoje: 0, cobrancasHoje: 0,
+  })
 
   // Permissão de localização + posição atual para centrar o mapa
   useEffect(() => {
@@ -30,7 +34,7 @@ export default function RotaScreen({ navigation }) {
     setACarregar(true)
     const { data: { user } } = await supabase.auth.getUser()
     const { data: perfil } = await supabase
-      .from('vendedores').select('id').eq('user_id', user.id).single()
+      .from('vendedores').select('id, nome').eq('user_id', user.id).single()
     if (!perfil) { setACarregar(false); return }
     setVendedorId(perfil.id)
 
@@ -43,6 +47,41 @@ export default function RotaScreen({ navigation }) {
       .order('ordem')
     setParagens(data || [])
     setACarregar(false)
+
+    // Resumo do dia / mês para o painel Home
+    const agora = new Date()
+    const inicioHoje = new Date(agora); inicioHoje.setHours(0, 0, 0, 0)
+    const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1)
+
+    const { data: metaData } = await supabase
+      .from('metas').select('valor_meta')
+      .eq('vendedor_id', perfil.id)
+      .eq('mes', agora.getMonth() + 1).eq('ano', agora.getFullYear())
+      .maybeSingle()
+
+    const { data: vendasMes } = await supabase
+      .from('vendas').select('valor_total, data_venda')
+      .eq('vendedor_id', perfil.id)
+      .gte('data_venda', inicioMes.toISOString())
+
+    const { data: pagamentosHoje } = await supabase
+      .from('pagamentos').select('valor')
+      .eq('vendedor_id', perfil.id)
+      .gte('data_pagamento', inicioHoje.toISOString())
+
+    const alcancadoMes = (vendasMes || []).reduce((s, v) => s + Number(v.valor_total), 0)
+    const vendasHoje = (vendasMes || []).filter(v => new Date(v.data_venda) >= inicioHoje)
+    const receitaHoje = vendasHoje.reduce((s, v) => s + Number(v.valor_total), 0)
+    const cobrancasHoje = (pagamentosHoje || []).reduce((s, p) => s + Number(p.valor), 0)
+
+    setResumo({
+      nome: perfil.nome || '',
+      metaMes: Number(metaData?.valor_meta || 0),
+      alcancadoMes,
+      encomendasHoje: vendasHoje.length,
+      receitaHoje,
+      cobrancasHoje,
+    })
   }, [])
 
   useFocusEffect(useCallback(() => { carregar() }, [carregar]))
@@ -57,8 +96,58 @@ export default function RotaScreen({ navigation }) {
       ? { latitude: paragens[0].clientes.lat, longitude: paragens[0].clientes.lng }
       : { latitude: 41.5518, longitude: -8.4229 })
 
+  const proxima = paragens.find(p => p.estado !== 'visitado')
+  const pctMeta = resumo.metaMes ? Math.min(100, Math.round((resumo.alcancadoMes / resumo.metaMes) * 100)) : 0
+
   return (
     <View style={s.contentor}>
+      <ScrollView>
+      <View style={s.home}>
+        <Text style={s.saudacao}>Olá, {resumo.nome || 'vendedor'} 👋</Text>
+
+        <View style={s.metaCartao}>
+          <Text style={s.metaLabel}>Meta do mês</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+            <Text style={s.metaValor}>{resumo.alcancadoMes.toFixed(0)}</Text>
+            <Text style={s.metaValorTotal}>/ {resumo.metaMes.toFixed(0)} AOA</Text>
+          </View>
+          <View style={s.metaFundo}>
+            <View style={[s.metaPreenchido, { width: `${pctMeta}%` }]} />
+          </View>
+          <Text style={s.metaPct}>{pctMeta}%</Text>
+        </View>
+
+        <View style={s.gridResumo}>
+          <View style={s.miniCard}>
+            <Text style={s.miniLabel}>Visitas hoje</Text>
+            <Text style={s.miniValor}>{paragens.filter(p => p.estado === 'visitado').length} / {paragens.length}</Text>
+          </View>
+          <View style={s.miniCard}>
+            <Text style={s.miniLabel}>Encomendas</Text>
+            <Text style={s.miniValor}>{resumo.encomendasHoje}</Text>
+          </View>
+          <View style={s.miniCard}>
+            <Text style={s.miniLabel}>Receita hoje</Text>
+            <Text style={s.miniValor}>{resumo.receitaHoje.toFixed(0)}</Text>
+          </View>
+          <View style={s.miniCard}>
+            <Text style={s.miniLabel}>Cobranças</Text>
+            <Text style={s.miniValor}>{resumo.cobrancasHoje.toFixed(0)}</Text>
+          </View>
+        </View>
+
+        {proxima && (
+          <View style={s.proximaCartao}>
+            <Text style={s.proximaLabel}>Próxima visita</Text>
+            <Text style={s.proximaNome}>{proxima.clientes?.nome}</Text>
+            <Text style={s.proximaEndereco}>{proxima.clientes?.endereco}</Text>
+            <TouchableOpacity style={s.botaoVenda} onPress={() => abrirNavegacao(proxima.clientes)}>
+              <Text style={s.botaoVendaTexto}>Iniciar visita</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
       <MapView
         style={s.mapa}
         initialRegion={{ ...centro, latitudeDelta: 0.03, longitudeDelta: 0.03 }}
@@ -155,12 +244,30 @@ export default function RotaScreen({ navigation }) {
           )}
         />
       )}
+      </ScrollView>
     </View>
   )
 }
 
 const s = StyleSheet.create({
   contentor: { flex: 1, backgroundColor: cores.fundo },
+  home: { padding: 16, backgroundColor: cores.branco, borderBottomWidth: 1, borderBottomColor: '#e5e1d8' },
+  saudacao: { fontSize: 20, fontWeight: '800', color: cores.navy, marginBottom: 14 },
+  metaCartao: { backgroundColor: cores.navy, borderRadius: 12, padding: 16, marginBottom: 14 },
+  metaLabel: { color: '#cbd5e1', fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  metaValor: { color: '#fff', fontSize: 24, fontWeight: '800' },
+  metaValorTotal: { color: '#cbd5e1', fontSize: 15 },
+  metaFundo: { height: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 4, marginTop: 10, overflow: 'hidden' },
+  metaPreenchido: { height: '100%', backgroundColor: cores.ambar },
+  metaPct: { color: cores.ambar, fontSize: 13, fontWeight: '700', marginTop: 6, textAlign: 'right' },
+  gridResumo: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
+  miniCard: { flexBasis: '47%', backgroundColor: '#f6f4ef', borderRadius: 10, padding: 12 },
+  miniLabel: { fontSize: 12, color: cores.cinza, fontWeight: '600' },
+  miniValor: { fontSize: 18, fontWeight: '800', color: cores.navy, marginTop: 4 },
+  proximaCartao: { backgroundColor: '#fdf3e7', borderRadius: 12, padding: 14 },
+  proximaLabel: { fontSize: 12, color: cores.ambar, fontWeight: '700' },
+  proximaNome: { fontSize: 17, fontWeight: '800', color: cores.navy, marginTop: 4 },
+  proximaEndereco: { fontSize: 14, color: cores.cinza, marginTop: 2, marginBottom: 10 },
   mapa: { height: '38%' },
   barra: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
